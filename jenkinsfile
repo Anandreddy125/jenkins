@@ -1,0 +1,69 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout') {
+            steps {
+                // Checkout your source code from version control (e.g., Git)
+                checkout scm
+            }
+        }
+
+        stage('Build APK') {
+            steps {
+                // Set up the Flutter environment
+                sh 'flutter doctor'
+                sh 'flutter pub get'
+
+                // Build the APK for Android
+                sh 'flutter build apk'
+            }
+            post {
+                success {
+                    // Archive the APK as an artifact
+                    archiveArtifacts artifacts: '**/build/app/outputs/flutter-apk/app-release.apk', allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('Build iOS') {
+            when {
+                // Optional: You can choose to build for iOS only if needed
+                expression { isUnix() }
+            }
+            steps {
+                // Set up the Flutter environment
+                sh 'flutter doctor'
+                sh 'flutter pub get'
+
+                // Build the iOS app
+                sh 'flutter build ios'
+            }
+            post {
+                success {
+                    // Archive the iOS build as an artifact
+                    archiveArtifacts artifacts: '**/build/ios/iphoneos/Runner.app', allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('Deploy to App Stores') {
+            when {
+                // Optional: Deploy to app stores based on your needs
+                expression { currentBuild.resultIsBetterOrEqualTo('SUCCESS') }
+            }
+            steps {
+                // Implement your deployment steps here
+                // Example: Upload the APK to Google Play or the iOS app to App Store Connect
+                // You may use tools like fastlane or Google Play API for deployment.
+            }
+        }
+    }
+
+    post {
+        failure {
+            // Notify or take actions in case of pipeline failure
+            // Example: Send a notification or rollback a previous deployment
+        }
+    }
+}
